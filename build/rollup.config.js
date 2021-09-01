@@ -12,7 +12,7 @@ export default [{
     ...Object.keys(pkg.peerDependencies || {})
   ],
   output: {
-    file: pkg.main,
+    file: pkg.exports.import,
     format: 'esm',
     name: pkg.name,
   }
@@ -26,5 +26,16 @@ export default [{
     file: pkg.module,
     format: 'esm',
     name: pkg.name,
+  }
+}, {
+  input: 'src/index.js',
+  plugins: [
+    resolve(),
+    commonjs(),
+  ],
+  output: {
+    file: pkg.main,
+    format: 'iife',
+    name: "tileRetriever" 
   }
 }];
