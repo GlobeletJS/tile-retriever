@@ -28,7 +28,7 @@ where the initialization parameters are:
 ## Requesting a tile
 The retriever function has the following signature:
 ```javascript
-const request = retrieve(tileCoords, callback)
+const request = retrieve(tileCoords, callback);
 ```
 
 where tileCoords has properties `{ z, x, y }`, corresponding to the indices
@@ -58,8 +58,8 @@ layer is a [GeoJSON][] FeatureCollection.
 Example:
 ```json
 {
-  "layer1": { type: "FeatureCollection", features: [...] },
-  "layer2": { type: "FeatureCollection", features: [...] },
+  "layer1": { "type": "FeatureCollection", "features": [...] },
+  "layer2": { "type": "FeatureCollection", "features": [...] },
   ...
 }
 ```
