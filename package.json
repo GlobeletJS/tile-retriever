@@ -1,0 +1,47 @@
+{
+  "name": "tile-retriever",
+  "version": "0.0.0",
+  "description": "Load vector tiles from sources described in MapLibre style documents",
+  "module": "dist/tile-retriever.bundle.js",
+  "exports": {
+    "import": "./dist/tile-retriever.js",
+    "default": "./dist/tile-retriever.bundle.js"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "build": "rollup -c build/rollup.config.js",
+    "test": "npm run lint",
+    "postversion": "git push && git push --tags"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GlobeletJS/tile-retriever.git"
+  },
+  "keywords": [
+    "vector",
+    "map",
+    "tile",
+    "source",
+    "MapLibre"
+  ],
+  "author": "Jeshurun Hembd",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/GlobeletJS/tile-retriever/issues"
+  },
+  "homepage": "https://github.com/GlobeletJS/tile-retriever#readme",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^20.0.0",
+    "@rollup/plugin-node-resolve": "^13.0.4",
+    "eslint": "^7.32.0",
+    "eslint-config-globeletjs": "^0.0.6",
+    "rollup": "^2.56.3"
+  },
+  "dependencies": {
+    "geojson-vt": "^3.2.1",
+    "vector-tile-esm": "^2.1.2"
+  },
+  "peerDependencies": {
+    "pbf": "^3.2.1"
+  }
+}
