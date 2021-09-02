@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>tile-retriever - beta</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="globe.svg">
+
+<style>
+body {
+  margin: 5%;
+}
+input[type=number] {
+  width: 4ch;
+  margin-right: 1ch;
+}
+pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+h1 {
+  font: bold 24px system-ui;
+}
+h2 {
+  font: 20px system-ui;
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
+hr {
+  margin-top: 20px;
+}
+</style>
+
+  </head>
+
+  <body>
+    <h1>Input Source</h1>
+    <p>This is a basic source pointing to a <a href="MapTiler">MapTiler</a> endpoint,
+      which returns tiles of <a href="https://www.openstreetmap.org/">OpenStreetMap</a>
+      data.</p>
+
+    <pre id="sourceText">{ 
+  "type": "vector",
+  "tiles": ["https://api.maptiler.com/tiles/v3/{z}/{x}/{y}.pbf?key=mrAq6zQEFxOkanukNbGm"]
+}</pre>
+    <hr>
+
+    <h1>Retriever function test</h1>
+
+    <h2>Enter tile coordinates</h2>
+    Z <input type="number" id="z" min="0" max="14" value="0"/>
+    X <input type="number" id="x" min="0" value="0" />
+    Y <input type="number" id="y" min="0" value="0" />
+
+    <hr>
+    <h2>Retrieved tile data</h2>
+    <p><a href="https://www.openstreetmap.org/copyright">&copy;
+        OpenStreetMap contributors</a></p>
+    <pre id="tileData">Tile data will appear here...</pre>
+    <hr>
+
+  </body>
+
+  <script type="module">
+    import * as tileRetriever from "../../dist/tile-retriever.bundle.js";
+
+    const sourceText = document.getElementById("sourceText").innerHTML;
+    const source = JSON.parse(sourceText);
+
+    const retrieve = tileRetriever.init({ source });
+
+    const inputs = ["z", "x", "y"].map(id => document.getElementById(id));
+    inputs.forEach(el => el.addEventListener("change", update));
+
+    const dataOut = document.getElementById("tileData");
+    update();
+
+    function update() {
+      dataOut.innerHTML = "Loading tile...";
+      let [z, x, y] = inputs.map(input => input.value);
+
+      // Make sure x and y are within range for this zoom
+      let maxCoord = 2 ** z - 1;
+      x = Math.min(x, maxCoord);
+      y = Math.min(y, maxCoord);
+      inputs[1].value = x;
+      inputs[2].value = y;
+
+      retrieve({ z, x, y }, (error, data) => {
+        const output = (error)
+          ? "ERROR: " + error
+          : JSON.stringify(data);
+        dataOut.innerHTML = output;
+      });
+    }
+  </script>
+</html>

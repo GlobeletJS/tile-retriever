@@ -1,8 +1,21 @@
 # tile-retriever
 
-Load vector tiles from sources described in [MapLibre style documents][]
+Load vector tiles from sources described in MapLibre style documents
 
-[MapLibre style documents]: https://maplibre.org/maplibre-gl-js-docs/style-spec/
+tile-retriever inputs a source object from a [MapLibre style document][],
+and constructs a tile retriever function. 
+
+The retriever function inputs a set of tile coordinates of the form 
+`{ z, x, y }` and a callback function. It then retrieves the tile from the
+endpoints specified in the source, and returns the layers and features as
+a dictionary of GeoJSON FeatureCollections.
+
+Using tile-retriever, you can play with the [basic demo][], build your own
+[GIS][] code from scratch, or anything in between!
+
+[MapLibre style document]: https://maplibre.org/maplibre-gl-js-docs/style-spec/
+[basic demo]: https://globeletjs.github.io/tile-retriever/examples/maptiler/index.html
+[GIS]: https://en.wikipedia.org/wiki/Geographic_information_system
 
 ## Initialization
 
