@@ -1,6 +1,6 @@
 {
   "name": "tile-retriever",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Load vector tiles from sources described in MapLibre style documents",
   "main": "dist/tile-retriever.iife.js",
   "module": "dist/tile-retriever.bundle.js",
