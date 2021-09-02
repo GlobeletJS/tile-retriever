@@ -1,5 +1,7 @@
 # tile-retriever
 
+![tests](https://github.com/GlobeletJS/tile-retriever/actions/workflows/node.js.yml/badge.svg)
+
 Load vector tiles from sources described in MapLibre style documents
 
 tile-retriever inputs a source object from a [MapLibre style document][],
@@ -7,8 +9,8 @@ and constructs a tile retriever function.
 
 The retriever function inputs a set of tile coordinates of the form 
 `{ z, x, y }` and a callback function. It then retrieves the tile from the
-endpoints specified in the source, and returns the layers and features as
-a dictionary of GeoJSON FeatureCollections.
+endpoints specified in the source, and executes the callback function with 
+the tile's layers and features as a dictionary of GeoJSON FeatureCollections.
 
 Using tile-retriever, you can play with the [basic demo][], build your own
 [GIS][] code from scratch, or anything in between!
