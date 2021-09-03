@@ -1,4 +1,4 @@
-import Protobuf from "pbf";
+import Protobuf from "pbf-esm";
 import { VectorTile } from "vector-tile-esm";
 import { xhrGet } from "./xhr-get.js";
 

@@ -1,14 +1,14 @@
-import Protobuf from 'pbf';
+import Protobuf from 'pbf-esm';
 
 function classifyRings(rings) {
   // Classifies an array of rings into polygons with outer rings and holes
   if (rings.length <= 1) return [rings];
 
-  var polygons = [];
-  var polygon, ccw;
+  const polygons = [];
+  let polygon, ccw;
 
   rings.forEach(ring => {
-    let area = signedArea(ring);
+    const area = signedArea(ring);
     if (area === 0) return;
 
     if (ccw === undefined) ccw = area < 0;
@@ -35,6 +35,58 @@ function signedArea(ring) {
     .reduce( (sum, p1, i) => sum + xmul(p1, ring[i]), initialValue );
 }
 
+const types = ["Unknown", "Point", "LineString", "Polygon"];
+
+function toGeoJSON(size, sx = 0, sy = 0) {
+  // Input size is the side length of the (square) area over which the
+  //  coordinate space of this tile [0, this.extent] will be rendered.
+  // Input sx, sy is the origin (top left corner) of the output coordinates
+  //  within the (size x size) rendered area of the full tile.
+
+  size = size || this.extent;
+  const scale = size / this.extent;
+  let coords = this.loadGeometry();
+  let type = types[this.type];
+
+  function project(line) {
+    return line.map(p => [p.x * scale - sx, p.y * scale - sy]);
+  }
+
+  switch (type) {
+    case "Point":
+      coords = project( coords.map(p => p[0]) );
+      break;
+
+    case "LineString":
+      coords = coords.map(project);
+      break;
+
+    case "Polygon":
+      coords = classifyRings(coords);
+      coords = coords.map(polygon => polygon.map(project));
+      break;
+  }
+
+  if (coords.length === 1) {
+    coords = coords[0];
+  } else {
+    type = "Multi" + type;
+  }
+
+  const result = {
+    type: "Feature",
+    geometry: {
+      type: type,
+      coordinates: coords
+    },
+    properties: this.properties
+  };
+
+  if ("id" in this) result.id = this.id;
+
+  return result;
+}
+
 function VectorTileFeature(pbf, end, extent, keys, values) {
   // Public
   this.properties = {};
@@ -58,32 +110,31 @@ function readFeature(tag, feature, pbf) {
 }
 
 function readTag(pbf, feature) {
-  var end = pbf.readVarint() + pbf.pos;
+  const end = pbf.readVarint() + pbf.pos;
+  const { _keys, _values } = feature;
 
   while (pbf.pos < end) {
-    var key = feature._keys[pbf.readVarint()],
-      value = feature._values[pbf.readVarint()];
+    const key = _keys[pbf.readVarint()];
+    const value = _values[pbf.readVarint()];
     feature.properties[key] = value;
   }
 }
 
-VectorTileFeature.types = ['Unknown', 'Point', 'LineString', 'Polygon'];
-
 VectorTileFeature.prototype.loadGeometry = function() {
-  var pbf = this._pbf;
+  const pbf = this._pbf;
   pbf.pos = this._geometry;
 
-  var end = pbf.readVarint() + pbf.pos,
-    cmd = 1,
-    length = 0,
-    x = 0,
-    y = 0,
-    lines = [],
-    line;
+  const end = pbf.readVarint() + pbf.pos;
+  let cmd = 1;
+  let length = 0;
+  let x = 0;
+  let y = 0;
+  const lines = [];
+  let line;
 
   while (pbf.pos < end) {
     if (length <= 0) {
-      var cmdLen = pbf.readVarint();
+      const cmdLen = pbf.readVarint();
       cmd = cmdLen & 0x7;
       length = cmdLen >> 3;
     }
@@ -109,7 +160,7 @@ VectorTileFeature.prototype.loadGeometry = function() {
       });
 
     } else {
-      throw new Error('unknown command ' + cmd);
+      throw Error("unknown command " + cmd);
     }
   }
 
@@ -119,22 +170,22 @@ VectorTileFeature.prototype.loadGeometry = function() {
 };
 
 VectorTileFeature.prototype.bbox = function() {
-  var pbf = this._pbf;
+  const pbf = this._pbf;
   pbf.pos = this._geometry;
 
-  var end = pbf.readVarint() + pbf.pos,
-  cmd = 1,
-  length = 0,
-  x = 0,
-  y = 0,
-  x1 = Infinity,
-  x2 = -Infinity,
-  y1 = Infinity,
-  y2 = -Infinity;
+  const end = pbf.readVarint() + pbf.pos;
+  let cmd = 1;
+  let length = 0;
+  let x = 0;
+  let y = 0;
+  let x1 = Infinity;
+  let x2 = -Infinity;
+  let y1 = Infinity;
+  let y2 = -Infinity;
 
   while (pbf.pos < end) {
     if (length <= 0) {
-      var cmdLen = pbf.readVarint();
+      const cmdLen = pbf.readVarint();
       cmd = cmdLen & 0x7;
       length = cmdLen >> 3;
     }
@@ -150,62 +201,15 @@ VectorTileFeature.prototype.bbox = function() {
       if (y > y2) y2 = y;
 
     } else if (cmd !== 7) {
-      throw new Error('unknown command ' + cmd);
+      throw Error("unknown command " + cmd);
     }
   }
 
   return [x1, y1, x2, y2];
 };
 
-VectorTileFeature.prototype.toGeoJSON = function(size, sx = 0, sy = 0) {
-  // Input size is the side length of the (square) area over which the
-  //  coordinate space of this tile [0, this.extent] will be rendered.
-  // Input sx, sy is the origin (top left corner) of the output coordinates
-  //  within the (size x size) rendered area of the full tile.
-
-  size = size || this.extent;
-  var scale = size / this.extent,
-    coords = this.loadGeometry(),
-    type = VectorTileFeature.types[this.type];
-
-  function project(line) {
-    return line.map(p => [p.x * scale - sx, p.y * scale - sy]);
-  }
-
-  switch (type) {
-    case "Point":
-      coords = project( coords.map(p => p[0]) );
-      break;
-
-    case "LineString":
-      coords = coords.map(project);
-      break;
-
-    case "Polygon":
-      coords = classifyRings(coords);
-      coords = coords.map(polygon => polygon.map(project));
-      break;
-  }
-
-  if (coords.length === 1) {
-    coords = coords[0];
-  } else {
-    type = 'Multi' + type;
-  }
-
-  var result = {
-    type: "Feature",
-    geometry: {
-      type: type,
-      coordinates: coords
-    },
-    properties: this.properties
-  };
-
-  if ('id' in this) result.id = this.id;
-
-  return result;
-};
+VectorTileFeature.types = types;
+VectorTileFeature.prototype.toGeoJSON = toGeoJSON;
 
 function VectorTileLayer(pbf, end) {
   // Public
@@ -235,11 +239,11 @@ function readLayer(tag, layer, pbf) {
 }
 
 function readValueMessage(pbf) {
-  var value = null,
-  end = pbf.readVarint() + pbf.pos;
+  let value = null;
+  const end = pbf.readVarint() + pbf.pos;
 
   while (pbf.pos < end) {
-    var tag = pbf.readVarint() >> 3;
+    const tag = pbf.readVarint() >> 3;
 
     value = tag === 1 ? pbf.readString() :
       tag === 2 ? pbf.readFloat() :
@@ -255,12 +259,15 @@ function readValueMessage(pbf) {
 
 // return feature 'i' from this layer as a 'VectorTileFeature'
 VectorTileLayer.prototype.feature = function(i) {
-  if (i < 0 || i >= this._features.length) throw new Error('feature index out of bounds');
+  const { _features, extent, _pbf, _keys, _values } = this;
 
-  this._pbf.pos = this._features[i];
+  const lastFeature = _features.length - 1;
+  if (i < 0 || i > lastFeature) throw Error("feature index out of bounds");
 
-  var end = this._pbf.readVarint() + this._pbf.pos;
-  return new VectorTileFeature(this._pbf, end, this.extent, this._keys, this._values);
+  _pbf.pos = _features[i];
+
+  const end = _pbf.readVarint() + _pbf.pos;
+  return new VectorTileFeature(_pbf, end, extent, _keys, _values);
 };
 
 VectorTileLayer.prototype.toGeoJSON = function(size, sx, sy) {
@@ -277,7 +284,7 @@ function VectorTile(pbf, end) {
 
 function readTile(tag, layers, pbf) {
   if (tag === 3) {
-    var layer = new VectorTileLayer(pbf, pbf.readVarint() + pbf.pos);
+    const layer = new VectorTileLayer(pbf, pbf.readVarint() + pbf.pos);
     if (layer.length) layers[layer.name] = layer;
   }
 }

@@ -1,12 +1,10 @@
 import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs'; // Needed for pbf module
 import pkg from "../package.json";
 
 export default [{
   input: 'src/index.js',
   plugins: [
     resolve(),
-    commonjs(),
   ],
   external: [
     ...Object.keys(pkg.peerDependencies || {})
@@ -20,7 +18,6 @@ export default [{
   input: 'src/index.js',
   plugins: [
     resolve(),
-    commonjs(),
   ],
   output: {
     file: pkg.module,
@@ -31,7 +28,6 @@ export default [{
   input: 'src/index.js',
   plugins: [
     resolve(),
-    commonjs(),
   ],
   output: {
     file: pkg.main,
