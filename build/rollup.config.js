@@ -1,5 +1,6 @@
 import resolve from '@rollup/plugin-node-resolve';
 import pkg from "../package.json";
+import { camelCase } from "./camelCase.js";
 
 export default [{
   input: 'src/index.js',
@@ -32,6 +33,6 @@ export default [{
   output: {
     file: pkg.main,
     format: 'iife',
-    name: "tileRetriever" 
+    name: camelCase(pkg.name), 
   }
 }];
