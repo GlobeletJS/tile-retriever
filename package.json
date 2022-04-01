@@ -8,6 +8,9 @@
     "import": "./dist/tile-retriever.js",
     "default": "./dist/tile-retriever.bundle.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "lint": "eslint src",
     "build": "rollup -c build/rollup.config.js",
