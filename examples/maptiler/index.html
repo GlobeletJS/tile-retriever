@@ -52,6 +52,11 @@ hr {
     X <input type="number" id="x" min="0" value="0" />
     Y <input type="number" id="y" min="0" value="0" />
 
+    <p>
+      <button id="load">Load tile</button>
+      <button id="abort">Abort request</button>
+    </p>
+
     <hr>
     <h2>Retrieved tile data</h2>
     <p><a href="https://www.openstreetmap.org/copyright">&copy;
@@ -70,13 +75,24 @@ hr {
     const retrieve = tileRetriever.init({ source });
 
     const inputs = ["z", "x", "y"].map(id => document.getElementById(id));
-    inputs.forEach(el => el.addEventListener("change", update));
+    //inputs.forEach(el => el.addEventListener("change", update));
 
     const dataOut = document.getElementById("tileData");
-    update();
+    function reportData(data) {
+      dataOut.innerHTML = data;
+    }
+
+    let controller = new AbortController();
+    document.getElementById("abort")
+      .addEventListener("click", () => {
+        console.log("Attempting abort");
+        controller.abort();
+      });
+    document.getElementById("load")
+      .addEventListener("click", () => update());
 
     function update() {
-      dataOut.innerHTML = "Loading tile...";
+      reportData("Loading tile...");
       let [z, x, y] = inputs.map(input => input.value);
 
       // Make sure x and y are within range for this zoom
@@ -86,12 +102,10 @@ hr {
       inputs[1].value = x;
       inputs[2].value = y;
 
-      retrieve({ z, x, y }, (error, data) => {
-        const output = (error)
-          ? "ERROR: " + error
-          : JSON.stringify(data);
-        dataOut.innerHTML = output;
-      });
+      controller = new AbortController();
+      retrieve({ z, x, y }, controller)
+        .then(data => reportData(JSON.stringify(data)))
+        .catch(err => reportData("ERROR: " + err.name + ": " + err.message));
     }
   </script>
 </html>

@@ -997,58 +997,16 @@ var tileRetriever = (function (exports) {
     }
   }
 
-  function xhrGet(href, type, callback) {
-    const req = new XMLHttpRequest();
-
-    req.responseType = type;
-    req.onerror = errHandler;
-    req.onabort = errHandler;
-    req.onload = loadHandler;
-
-    req.open("get", href);
-    req.send();
-
-    function errHandler(e) {
-      return callback(xhrErr("ended with an ", e.type));
-    }
-
-    function loadHandler() {
-      const { responseType, status, response } = req;
-
-      const err = (responseType !== type) ?
-        xhrErr("Expected responseType ", type, ", got ", responseType) :
-        (status !== 200) ? xhrErr("HTTP ", status, " error from ", href) :
-        null;
-
-      return callback(err, response);
-    }
-
-    return req; // Request can be aborted via req.abort()
-  }
-
-  function xhrErr(...strings) {
-    return "XMLHttpRequest: " + strings.join("");
-  }
-
   function initMVT(source) {
     const getURL = initUrlFunc(source.tiles);
 
-    // TODO: use VectorTile.extent. Requires changes in dependencies, dependents
-    const size = 512;
-
-    return function(tileCoords, callback) {
+    return function(tileCoords, init = {}) {
       const { z, x, y } = tileCoords;
       const dataHref = getURL(z, x, y);
 
-      return xhrGet(dataHref, "arraybuffer", parseMVT);
-
-      function parseMVT(err, data) {
-        if (err) return callback(err, data);
-        const tile = new VectorTile(new Pbf(data));
-        const json = Object.values(tile.layers)
-          .reduce((d, l) => (d[l.name] = l.toGeoJSON(size), d), {});
-        callback(null, json);
-      }
+      return fetch(dataHref, init)
+        .then(getArrayBuffer)
+        .then(parseMVT);
     };
   }
 
@@ -1061,6 +1019,23 @@ var tileRetriever = (function (exports) {
       const endpoint = endpoints[index];
       return endpoint.replace(/{z}/, z).replace(/{x}/, x).replace(/{y}/, y);
     };
+  }
+
+  function getArrayBuffer(response) {
+    if (response.status === 200) return response.arrayBuffer();
+
+    const { status, statusText, url } = response;
+    throw Error(["HTTP", status, statusText, "from", url].join(" "));
+  }
+
+  function parseMVT(data) {
+    const tile = new VectorTile(new Pbf(data));
+
+    // TODO: use VectorTile.extent. Requires changes in dependencies, dependents
+    const size = 512;
+
+    return Object.values(tile.layers)
+      .reduce((d, l) => (d[l.name] = l.toGeoJSON(size), d), {});
   }
 
   // calculate simplification data using optimized Douglas-Peucker algorithm
@@ -1953,22 +1928,22 @@ var tileRetriever = (function (exports) {
     const indexParams = { extent, tolerance: 1 };
     const tileIndex = geojsonvt(source.data, indexParams);
 
-    return function(tileCoords, callback) {
+    return function(tileCoords) {
       const { z, x, y } = tileCoords;
 
       const tile = tileIndex.getTile(z, x, y);
 
-      const err = (!tile || !tile.features || !tile.features.length)
-        ? "ERROR in GeojsonLoader for tile z, x, y = " + [z, x, y].join(", ")
-        : null;
+      if (!tile || !tile.features || !tile.features.length) {
+        const msg = "geojson-vt returned nothing for tile ";
+        const err = Error("tile-retriever: " + msg + [z, x, y].join(","));
+        return Promise.reject(err);
+      }
 
-      const layer = { type: "FeatureCollection", extent };
-      if (!err) layer.features = tile.features.map(geojsonvtToJSON);
-
+      const features = tile.features.map(geojsonvtToJSON);
+      const layer = { type: "FeatureCollection", extent, features };
       const json = { [layerID]: layer };
-      setTimeout(() => callback(err, json));
 
-      return { abort: () => undefined };
+      return Promise.resolve(json);
     };
   }
 

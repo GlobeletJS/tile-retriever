@@ -5,22 +5,22 @@ export function initGeojson(source, layerID) {
   const indexParams = { extent, tolerance: 1 };
   const tileIndex = geojsonvt(source.data, indexParams);
 
-  return function(tileCoords, callback) {
+  return function(tileCoords) {
     const { z, x, y } = tileCoords;
 
     const tile = tileIndex.getTile(z, x, y);
 
-    const err = (!tile || !tile.features || !tile.features.length)
-      ? "ERROR in GeojsonLoader for tile z, x, y = " + [z, x, y].join(", ")
-      : null;
+    if (!tile || !tile.features || !tile.features.length) {
+      const msg = "geojson-vt returned nothing for tile ";
+      const err = Error("tile-retriever: " + msg + [z, x, y].join(","));
+      return Promise.reject(err);
+    }
 
-    const layer = { type: "FeatureCollection", extent };
-    if (!err) layer.features = tile.features.map(geojsonvtToJSON);
-
+    const features = tile.features.map(geojsonvtToJSON);
+    const layer = { type: "FeatureCollection", extent, features };
     const json = { [layerID]: layer };
-    setTimeout(() => callback(err, json));
 
-    return { abort: () => undefined };
+    return Promise.resolve(json);
   };
 }
 
